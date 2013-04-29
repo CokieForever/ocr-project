@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="OCR" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin\Debug\OCR" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj\Debug\" />
+				<Option type="0" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add directory="C:\Program Files\CodeBlocks\lib\SDL\SDL-1.2.15\include" />
+			<Add directory="C:\Program Files\CodeBlocks\lib\SDL_image-1.2.12\include" />
+			<Add directory="C:\Program Files\CodeBlocks\lib\SDL_ttf-2.0.11\include" />
+			<Add directory="C:\Program Files\CodeBlocks\lib\smpeg\include" />
+			<Add directory="C:\Program Files\CodeBlocks\lib\FMOD\FMOD Programmers API Windows\api\inc" />
+		</Compiler>
+		<Linker>
+			<Add library="mingw32" />
+			<Add library="SDLmain" />
+			<Add library="SDL.dll" />
+			<Add library="user32" />
+			<Add library="gdi32" />
+			<Add library="winmm" />
+			<Add library="dxguid" />
+			<Add library="C:\Program Files\CodeBlocks\lib\SDL_image-1.2.12\lib\x86\SDL_image.lib" />
+			<Add library="C:\Program Files\CodeBlocks\lib\SDL_ttf-2.0.11\lib\x86\SDL_ttf.lib" />
+			<Add library="C:\Program Files\CodeBlocks\lib\smpeg\lib\smpeg.lib" />
+			<Add library="C:\Program Files\CodeBlocks\lib\FMOD\FMOD Programmers API Windows\api\lib\libfmodex.a" />
+			<Add directory="C:\Program Files\CodeBlocks\lib\SDL\SDL-1.2.15\lib" />
+		</Linker>
+		<Unit filename="anim.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="anim.h" />
+		<Unit filename="general.h" />
+		<Unit filename="main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="main.h" />
+		<Unit filename="ocr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ocr.h" />
+		<Unit filename="textedition.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="textedition.h" />
+		<Unit filename="ttf_secure.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ttf_secure.h" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+			<lib_finder disable_auto="1" />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
