@@ -21,6 +21,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "ocr.h"
 
+#define IsRectInRect(rIn,rExt)  ((rIn).x>=(rExt).x && (rIn).x+(rIn).w<=(rExt).x+(rExt).w && (rIn).y>=(rExt).y && (rIn).y+(rIn).h<=(rExt).y+(rExt).h)
+
 static CharTab *tabImagesRef[MAX_FONTS] = {NULL};
 
 CharTab Bichromize(SDL_Color **img, int width, int height)
@@ -173,8 +175,9 @@ SDL_Surface* WriteCharTab(CharTab charTab, TTF_Font *font, SDL_Color color)
 
 SDL_Rect* LocateLetters(CharTab charTab)
 {
-    int x, y, i=0;
-    SDL_Rect *rectTab = malloc(sizeof(SDL_Rect) * charTab.width*charTab.height);
+    int x, y, i=0, j, k=0, ok;
+    SDL_Rect *rectTab = malloc(sizeof(SDL_Rect) * charTab.width*charTab.height),
+             *rectTab2 = NULL;
 
     for (x=0 ; x<charTab.width ; x++)
     {
@@ -190,6 +193,29 @@ SDL_Rect* LocateLetters(CharTab charTab)
     }
 
     memset(&(rectTab[i]), 0, sizeof(SDL_Rect));
+    rectTab2 = malloc(sizeof(SDL_Rect) * (i+1));
+
+    for (i=0 ; rectTab[i].w > 0 ; i++)
+    {
+        ok = 1;
+        for (j=0 ; rectTab[j].w > 0 ; j++)
+        {
+            if (i != j && IsRectInRect(rectTab[j], rectTab[i]))
+                ok = 0;
+        }
+
+        if (ok)
+        {
+            rectTab2[k] = rectTab[i];
+            k++;
+        }
+    }
+
+    free(rectTab);
+    rectTab = malloc(sizeof(SDL_Rect) * (k+1));
+    memcpy(rectTab, rectTab2, sizeof(SDL_Rect) * (k+1));
+    memset(&(rectTab[k]), 0, sizeof(SDL_Rect));
+    free(rectTab2);
 
     for (x=0 ; x<charTab.width ; x++)
     {
@@ -808,6 +834,7 @@ int FullRecognition(SDL_Surface *img,
              *rectTab2, **mainTab2, mainTabSize2;
     double recognitionRate,
            recognitionRate2;
+    int n;
 
     printf("Image bichromization...\n");
     colorTab = GetAllPixels(img);
@@ -829,8 +856,12 @@ int FullRecognition(SDL_Surface *img,
 
     printf("1st letters recognition.\n");
     lettersTab = RecognizeMainTab(charTab, mainTab, mainTabSize.w, mainTabSize.h, &recognitionRate);
+    if ( (n = lettersTab.width * lettersTab.height) < 20)
+        recognitionRate *= n / 20.0;
     printf("2nd letters recognition.\n");
     lettersTab2 = RecognizeMainTab(charTabInverted, mainTab2, mainTabSize2.w, mainTabSize2.h, &recognitionRate2);
+    if ( (n = lettersTab2.width * lettersTab2.height) < 20)
+        recognitionRate2 *= n / 20.0;
     printf("Rate for tab 1: %.1f%%\nRate for tab 2: %.1f%%\n", recognitionRate*100, recognitionRate2*100);
 
     if (recognitionRate >= recognitionRate2)

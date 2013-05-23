@@ -1,6 +1,6 @@
 ﻿The OCR Project - Optical Character Recognition try / SDL Graphic Library development
 
-Version: 0.1.0 beta (April 29th, 2013)
+Version: 0.1.1 beta (May 23rd, 2013)
 Author: Cokie (cokie.forever@gmail.com)
 License: GNU GPL v2.0 (see the LICENSE.txt file or http://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 

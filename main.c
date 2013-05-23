@@ -130,7 +130,7 @@ int LoadData(void *ptv)
 
 int FullProcess(void *ptv)
 {
-    int i, j, nbWords,
+    int nbWords,
         nbWordsFound;
     char wordsFound[MAX_STRING] = "\0";
     TTF_Font *mainFont;
@@ -141,13 +141,7 @@ int FullProcess(void *ptv)
     FullRecognition(imgToProcess, NULL, &imgBichromized, &imgProcessed, &lettersPos, &lettersPosMainTab,
                     &lettersPosMainTabSize, &tabImagesRef, &recognizedLetters, NULL);
 
-    for (i=0 ; lettersPos[i].w > 0 ; i++)
-        DrawRect(lettersPos[i], imgProcessed, SDL_MapRGB(imgProcessed->format, 0,0,255));
-    for (i=0 ; i < lettersPosMainTabSize.w ; i++)
-    {
-        for (j=0 ; j < lettersPosMainTabSize.h ; j++)
-            DrawRect(lettersPosMainTab[i][j], imgProcessed, SDL_MapRGB(imgProcessed->format, 255,0,0));
-    }
+    DrawAllLettersRect(NULL, 0);
 
     printf("Writing result...\n");
     mainFont = TTF_OpenFont("fonts\\gui\\mainFont.ttf", 25);
@@ -164,6 +158,24 @@ int FullProcess(void *ptv)
     displayMode = DISPLAY_RESULT;
 
     return 1;
+}
+
+void DrawAllLettersRect(const SDL_Rect *specialLetters, int nbSpecialLetters)
+{
+    int i, j;
+
+    for (i=0 ; lettersPos[i].w > 0 ; i++)
+        DrawRect(lettersPos[i], imgProcessed, SDL_MapRGB(imgProcessed->format, 0,0,255));
+    for (i=0 ; i < lettersPosMainTabSize.w ; i++)
+    {
+        for (j=0 ; j < lettersPosMainTabSize.h ; j++)
+            DrawRect(lettersPosMainTab[i][j], imgProcessed, SDL_MapRGB(imgProcessed->format, 255,0,0));
+    }
+    if (specialLetters)
+    {
+        for (i=0 ; i < nbSpecialLetters ; i++)
+            DrawRect(lettersPosMainTab[specialLetters[i].x][specialLetters[i].y], imgProcessed, SDL_MapRGB(imgProcessed->format, 0,200,0));
+    }
 }
 
 int ManageEvent(SDL_Event event)
@@ -186,6 +198,31 @@ int ManageEvent(SDL_Event event)
                 {
                     MemoryFree(0);
                     displayMode = DISPLAY_MENU;
+                }
+            }
+            else if (event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_KP_ENTER)
+            {
+                if (displayMode == DISPLAY_RESULT)
+                {
+                    char word[101] = "";
+                    SDL_Rect *result;
+
+                    resultDisplayed = 1;
+                    if (PrintGeneralTextBox("Please enter the word you are looking for:", word, 100, "sounds\\voices\\enter-word.wav") && word[0] && word[1])
+                    {
+                        printf("Looking for word %s...\n", word);
+                        if ( !(result = SearchWord(recognizedLetters, word, 0, 1)) )
+                        {
+                            printf("Word not found.\n");
+                            DrawAllLettersRect(NULL, 0);
+                        }
+                        else
+                        {
+                            printf("Word found!\n");
+                            DrawAllLettersRect(result, strlen(word));
+                            free(result);
+                        }
+                    }
                 }
             }
 
@@ -544,11 +581,12 @@ void MemoryFree(int all)
     }
 }
 
-int SearchWord(CharTab lettersTab, const char *word, int caseSensitive)
+SDL_Rect* SearchWord(CharTab lettersTab, const char *word, int caseSensitive, int getResult)
 {
     int x, y, x2, y2, i,
         dir, done;
     char c;
+    SDL_Rect *result = getResult ? malloc(sizeof(SDL_Rect) * strlen(word)) : NULL;
 
     for(x=0 ; x < lettersTab.width ; x++)
     {
@@ -559,6 +597,11 @@ int SearchWord(CharTab lettersTab, const char *word, int caseSensitive)
                 dir = 1;
                 x2 = x; y2 = y;
                 done = 0;
+                if (result)
+                {
+                    result[0].x = x;
+                    result[0].y = y;
+                }
 
                 for (i=1 ; !done && word[i] ; i++)
                 {
@@ -601,17 +644,25 @@ int SearchWord(CharTab lettersTab, const char *word, int caseSensitive)
                         x2 = x; y2 = y;
                     }
 
+                    if (result)
+                    {
+                        result[i].x = x2;
+                        result[i].y = y2;
+                    }
+
                     if (dir > 8)
                         done = 1;
                 }
 
                 if (!done)
-                    return 1;
+                    return getResult ? result : (SDL_Rect*)1;
             }
         }
     }
 
-    return 0;
+    if (result)
+        free(result);
+    return NULL;
 }
 
 int SearchAllWords(CharTab lettersTab, int minLength, int *nbWords0, int *nbWordsFound0, char *wordsFound0, size_t bufSize)
@@ -630,7 +681,7 @@ int SearchAllWords(CharTab lettersTab, int minLength, int *nbWords0, int *nbWord
         if ( (p = strchr(word, '\n')) )
             *p = '\0';
 
-        if (strlen(word) >= minLength && SearchWord(lettersTab, word, 0))
+        if (strlen(word) >= minLength && SearchWord(lettersTab, word, 0, 0))
         {
             snprintf(wordsFound, MAX_STRING-1, "%s\n%s", wordsFound, word);
             nbWordsFound++;
@@ -1143,16 +1194,17 @@ int PrintGeneralTextBox(const char *title, char *text, int nbChar, const char *v
 
     SDL_Surface *bgSurf = NULL,
                 *titleSurf = NULL,
+                *titleBg = NULL,
                 *screen = SDL_GetVideoSurface();
     TTF_Font *font = TTF_OpenFont("fonts\\gui\\neuropol.ttf", 15);
     SDL_Color whiteColor = {255, 255, 255};
     SDL_Event event;
     SDL_Rect editPos = {0},
-             titlePos = {0};
+             titlePos = {0},
+             titleBgPos = {0};
     TextEdition te;
     FMOD_SOUND *voice = NULL;
     int done = 0;
-
 
     memset(&te, 0, sizeof(TextEdition));
     te.blitStyle = TE_BLITSTYLE_BLENDED;
@@ -1161,12 +1213,18 @@ int PrintGeneralTextBox(const char *title, char *text, int nbChar, const char *v
     editPos.w = SCREENW - editPos.x*2;
     editPos.y = (SCREENH - editPos.h) /2;
     bgSurf = SDL_CreateRGBSurface(SDL_HWSURFACE, editPos.w, editPos.h, 32,0,0,0,0);
-    SDL_FillRect(bgSurf, NULL, SDL_MapRGB(bgSurf->format, 200,0,0));
-    SDL_SetAlpha(bgSurf, SDL_SRCALPHA, 200);
+    SDL_FillRect(bgSurf, NULL, SDL_MapRGB(bgSurf->format, 255,0,0));
+    SDL_SetAlpha(bgSurf, SDL_SRCALPHA, 240);
 
     titleSurf = TTF_RenderText_Blended(font, title, whiteColor);
     titlePos.x = (SCREENW - titleSurf->w) / 2;
     titlePos.y = editPos.y - titleSurf->h - 10;
+
+    titleBg = SDL_CreateRGBSurface(SDL_HWSURFACE, SCREENW, editPos.y+editPos.h - titlePos.y + 20, 32,0,0,0,0);
+    titleBgPos.x = 0;
+    titleBgPos.y = titlePos.y - 10;
+    SDL_FillRect(titleBg, NULL, SDL_MapRGB(titleBg->format, 0,0,10));
+    SDL_SetAlpha(titleBg, SDL_SRCALPHA, 200);
 
     TE_NewTextEdition(&te, nbChar-1, editPos, font, whiteColor, TE_STYLE_HSCROLL | TE_STYLE_BLITRGBA);
     if (text[0])
@@ -1193,6 +1251,7 @@ int PrintGeneralTextBox(const char *title, char *text, int nbChar, const char *v
 
         ManageDisplay();
         SDL_BlitSurface(bgSurf, NULL, screen, &editPos);
+        SDL_BlitSurface(titleBg, NULL, screen, &titleBgPos);
         TE_DisplayTextEdition(&te);
         SDL_BlitSurface(titleSurf, NULL, screen, &titlePos);
 
@@ -1207,6 +1266,7 @@ int PrintGeneralTextBox(const char *title, char *text, int nbChar, const char *v
         FMOD_Sound_Release(voice);
     TE_DeleteTextEdition(&te);
     SDL_FreeSurface(titleSurf);
+    SDL_FreeSurface(titleBg);
     SDL_FreeSurface(bgSurf);
     TTF_CloseFont(font);
 
