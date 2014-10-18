@@ -51,5 +51,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #endif
 
 #define printf(...)   do { char txdfg[MAX_STRING]; snprintf(txdfg, MAX_STRING-1, __VA_ARGS__); PrintInConsole(txdfg); } while(0)
+#define SDL_UpperBlit(s1,r1,s2,r2) BlitSurfaceSecured(s1,r1,s2,r2)
 
 #endif
+
+int BlitSurfaceSecured(SDL_Surface *s1, SDL_Rect *r1, SDL_Surface *s2, SDL_Rect *r2);

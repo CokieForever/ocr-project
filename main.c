@@ -82,7 +82,7 @@ int main ( int argc, char** argv )
     InitConsole();
 
     loadingThread = SDL_CreateThread(LoadData, NULL);
-    PrintGeneralMsg("THE OCR PROJECT", "Welcome on the Optical Character Recognition Project.\n\nVersion: 0.1.0 bêta (April 29th, 2013)\nAuthor: Cokie\nLicense: GNU GPL v2.0", NULL);
+    PrintGeneralMsg("THE OCR PROJECT", "Welcome on the Optical Character Recognition Project.\n\nVersion: 0.1.2 beta (October 18th, 2014)\nAuthor: Cokie\nLicense: GNU GPL v2.0", NULL);
 
 
     while (!done)
@@ -133,10 +133,16 @@ int FullProcess(void *ptv)
     int nbWords,
         nbWordsFound;
     char wordsFound[MAX_STRING] = "\0";
+    const char musicFileAddr[] = "sounds\\musics\\space-dream.mp3";
     TTF_Font *mainFont;
     SDL_Color blackColor = {0, 0, 0};
+    FMOD_SOUND *music = NULL;
+    FMOD_CHANNEL *channel = NULL;
 
     displayMode = DISPLAY_PROCESSING;
+
+    if (FMOD_OK == FMOD_System_CreateSound(mainFMODSystem, musicFileAddr, FMOD_SOFTWARE | FMOD_2D | FMOD_CREATESTREAM, 0, &music) && music)
+        FMOD_System_PlaySound(mainFMODSystem, FMOD_CHANNEL_FREE, music, 0, &channel);
 
     FullRecognition(imgToProcess, NULL, &imgBichromized, &imgProcessed, &lettersPos, &lettersPosMainTab,
                     &lettersPosMainTabSize, &tabImagesRef, &recognizedLetters, NULL);
@@ -156,6 +162,17 @@ int FullProcess(void *ptv)
     printf("Ready.\n\n");
 
     displayMode = DISPLAY_RESULT;
+
+    if (music)
+    {
+        int time = SDL_GetTicks();
+        while (SDL_GetTicks() - time < 7500)
+        {
+            FMOD_Channel_SetVolume(channel, 1 - (SDL_GetTicks() - time)/7500.0);
+            SDL_Delay(10);
+        }
+        FMOD_Sound_Release(music);
+    }
 
     return 1;
 }
@@ -481,20 +498,17 @@ void DisplayConsole(void)
 
         if (!consoleDisplayChange)
             TE_DisplayTextEdition(&consoleTE);
-        if (consoleSurf)
-            SDL_BlitSurface(consoleSurf, NULL, screen, &consolePos);
-        if (arrowDownSurf)
-            SDL_BlitSurface(arrowDownSurf, NULL, screen, &arrowButtonPos);
+        SDL_BlitSurface(consoleSurf, NULL, screen, &consolePos);
+        SDL_BlitSurface(arrowDownSurf, NULL, screen, &arrowButtonPos);
     }
     else
     {
         arrowButtonPos.x = screen->w - (arrowHighSurf ? arrowHighSurf->w : 0) - 2;
         arrowButtonPos.y = consolePos.y - (arrowHighSurf ? arrowHighSurf->h : 0) - 2;
 
-        if (consoleDisplayChange && consoleSurf)
+        if (consoleDisplayChange)
             SDL_BlitSurface(consoleSurf, NULL, screen, &consolePos);
-        if (arrowHighSurf)
-            SDL_BlitSurface(arrowHighSurf, NULL, screen, &arrowButtonPos);
+        SDL_BlitSurface(arrowHighSurf, NULL, screen, &arrowButtonPos);
     }
 }
 
@@ -503,8 +517,7 @@ void DisplayMainMenu(void)
     SDL_Surface *screen = SDL_GetVideoSurface(),
                 *menuSurf = Anim_GetDistorsionImg(&menuDistorsion);
 
-    if (menuSurf)
-        SDL_BlitSurface(menuSurf, NULL, screen, NULL);
+    SDL_BlitSurface(menuSurf, NULL, screen, NULL);
 
     return;
 }
